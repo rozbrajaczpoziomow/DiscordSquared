@@ -28,6 +28,9 @@ repositories {
 	maven {
 		url = 'https://maven.blamejared.com/'
 	}
+	maven {
+		url = 'https://repo.kord.dev/snapshots'
+	}
 	mavenLocal() // Must be last for caching to work
 }
 
@@ -73,5 +76,8 @@ dependencies {
 
 	implementation "com.cleanroommc:configanytime:3.0"
 
+	// TODO: remove this and resources/simplelogger.properties for prod
+	 implementation "org.slf4j:slf4j-simple:2.1.0-alpha1"
 
+	embed "dev.kord:kord-core:0.15.0"
 }
