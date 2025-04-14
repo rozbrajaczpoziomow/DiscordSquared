@@ -47,16 +47,12 @@ object ConfigHandler {
 
 			@JvmField
 			@Config.Name("b Status")
-			@Config.Comment(
-				"Valid values are: online, idle, dnd, invisible"
-			)
+			@Config.Comment("Valid values are: online, idle, dnd, invisible")
 			var status = "idle"
 
 			@JvmField
 			@Config.Name("c Activity")
-			@Config.Comment(
-				"Valid values are: playing, listening, watching, competing (empty/invalid to not set any activity)"
-			)
+			@Config.Comment("Valid values are: playing, listening, watching, competing (empty/invalid to not set any activity)")
 			var activity = "playing"
 
 			@JvmField
@@ -126,7 +122,7 @@ object ConfigHandler {
 		"Discord -> Minecraft",
 		"Message format, available substitutions: {username}, {displayName}, {message}, {userId}, {messageId}"
 	)
-	var messageFormat = "<[D] {displayName}> {message}"
+	var messageFormat = "§5<{displayName}>§r {message}"
 
 	@JvmField
 	@Config.Name("f Allow Mentions")
