@@ -1,21 +1,21 @@
+@file:Suppress("deprecation")
+
 package futbol.rozbrajacz.discordsquared
 
-import futbol.rozbrajacz.discordsquared.bot.BotHandler
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.server.MinecraftServer
-import net.minecraftforge.common.MinecraftForge
+import net.minecraft.util.text.translation.I18n
 import net.minecraftforge.event.ServerChatEvent
 import net.minecraftforge.event.entity.living.LivingDeathEvent
 import net.minecraftforge.fml.common.FMLCommonHandler
 import net.minecraftforge.fml.common.Mod
-import net.minecraftforge.fml.common.event.FMLInitializationEvent
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
 import net.minecraftforge.fml.common.event.FMLServerStartedEvent
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent
+import net.minecraftforge.fml.common.event.FMLServerStoppingEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.PlayerEvent
-import net.minecraftforge.fml.common.network.FMLNetworkEvent
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.server.FMLServerHandler
 import org.apache.logging.log4j.Logger
@@ -26,7 +26,9 @@ import kotlin.properties.Delegates
 	name = Reference.MOD_NAME,
 	version = Reference.VERSION,
 	dependencies = DiscordSquared.DEPENDENCIES,
-	modLanguageAdapter = "io.github.chaosunity.forgelin.KotlinAdapter"
+	modLanguageAdapter = "io.github.chaosunity.forgelin.KotlinAdapter",
+	serverSideOnly = true,
+	acceptableRemoteVersions = "*"
 )
 @Mod.EventBusSubscriber(Side.SERVER, modid = Reference.MODID)
 object DiscordSquared {
@@ -50,49 +52,90 @@ object DiscordSquared {
 
 	@Suppress("unused")
 	@Mod.EventHandler
-	fun serverStart(e: FMLServerStartedEvent) {
+	fun serverStart(e: FMLServerStartingEvent) {
 		if(!enabled)
 			return
 		Thread {
 			runBlocking {
 				BotHandler.init()
 			}
-		}.start()
+		}.apply {
+			name = "${Reference.MOD_NAME} bot thread"
+			start()
+		}
+	}
+
+	@Suppress("unused")
+	@Mod.EventHandler
+	fun serverStop(e: FMLServerStoppingEvent) {
+		if(!enabled || !ConfigHandler.serverStartStopMessages.stopEnabled)
+			return
+
+		BotHandler.postSystemMessage(ConfigHandler.serverStartStopMessages.stopMessage)
 	}
 
 	@Suppress("unused")
 	@SubscribeEvent
 	fun onMessage(e: ServerChatEvent) {
-		if(!enabled)
+		if(!enabled || !ConfigHandler.chatMessages.enabled)
 			return
-		println("calling postMessage with ${e.message}")
-		BotHandler.postMessage(e.username, e.message)
+
+		BotHandler.postPlayerMessage(e.player, ConfigHandler.chatMessages.format.fmt(
+			"username" to e.username,
+			"uuid" to e.player.uniqueID,
+			"message" to e.message
+		))
 	}
 
 	@Suppress("unused")
 	@SubscribeEvent
 	fun onJoin(e: PlayerEvent.PlayerLoggedInEvent) {
-		if(!enabled || !ConfigHandler.joinLeaveMessages)
+		if(!enabled || !ConfigHandler.joinLeaveMessages.joinEnabled)
 			return
 
-		BotHandler.postMessage(e.player.name, "${e.player.name} joined the game")
+		BotHandler.updatePresence = true // onlinePlayers
+		BotHandler.postPlayerMessage(e.player, ConfigHandler.joinLeaveMessages.joinFormat.fmt(
+			"username" to e.player.name,
+			"uuid" to e.player.uniqueID,
+			"newOnlineCount" to server.playerList.currentPlayerCount
+		))
 	}
 
 	@Suppress("unused")
 	@SubscribeEvent
-	fun onLeave(e: PlayerEvent.PlayerLoggedInEvent) {
-		if(!enabled || !ConfigHandler.joinLeaveMessages)
+	fun onLeave(e: PlayerEvent.PlayerLoggedOutEvent) {
+		if(!enabled || !ConfigHandler.joinLeaveMessages.leaveEnabled)
 			return
 
-		BotHandler.postMessage(e.player.name, "${e.player.name} left the game")
+		BotHandler.updatePresence = true // onlinePlayers
+		BotHandler.postPlayerMessage(e.player, ConfigHandler.joinLeaveMessages.leaveFormat.fmt(
+			"username" to e.player.name,
+			"uuid" to e.player.uniqueID,
+			"newOnlineCount" to server.playerList.currentPlayerCount
+		))
 	}
 
 	@Suppress("unused")
 	@SubscribeEvent
 	fun onDeath(e: LivingDeathEvent) {
-		if(!enabled || !ConfigHandler.deathMessages || e.entityLiving !is EntityPlayer)
+		if(!enabled || !ConfigHandler.deathMessages.enabled || e.entityLiving !is EntityPlayer)
 			return
 
-		BotHandler.postMessage(e.entityLiving.name, "${e.entityLiving.name} ${e.source.damageType}")
+		BotHandler.postPlayerMessage(e.entityLiving, ConfigHandler.deathMessages.format.fmt(
+			"username" to e.entityLiving.name,
+			"uuid" to e.entityLiving.uniqueID,
+			"deathReason" to e.entityLiving.combatTracker.deathMessage.unformattedText.removePrefix("${e.entityLiving.name} ")
+		))
+	}
+
+	//because we're on server-side, we cannot translate any normal way
+	//use translateToFallback to hardcode en-US locale
+	//fun String.translate() = I18n.translateToFallback(this)
+
+	fun String.fmt(vararg modifiers: Pair<String, Any>): String {
+		var ret = this
+		for((format, replacement) in modifiers)
+			ret = ret.replace("{$format}", replacement.toString())
+		return ret
 	}
 }
