@@ -1,11 +1,8 @@
-@file:Suppress("deprecation")
-
 package futbol.rozbrajacz.discordsquared
 
 import kotlinx.coroutines.runBlocking
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.server.MinecraftServer
-import net.minecraft.util.text.translation.I18n
 import net.minecraftforge.event.ServerChatEvent
 import net.minecraftforge.event.entity.living.LivingDeathEvent
 import net.minecraftforge.fml.common.FMLCommonHandler
@@ -32,7 +29,7 @@ import kotlin.properties.Delegates
 )
 @Mod.EventBusSubscriber(Side.SERVER, modid = Reference.MODID)
 object DiscordSquared {
-	const val DEPENDENCIES = "required-after:configanytime;required-after:forgelin_continuous@[${Reference.KOTLIN_VERSION},);"
+	const val DEPENDENCIES = "required-after:forgelin_continuous@[${Reference.KOTLIN_VERSION},);"
 
 	lateinit var logger: Logger
 		private set

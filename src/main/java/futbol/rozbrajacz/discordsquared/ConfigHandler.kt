@@ -134,7 +134,7 @@ object ConfigHandler {
 		"Minecraft -> Discord",
 		"Whether to allow pinging users/@everyone/…"
 	)
-	var allowMentions = true
+	var allowMentions = false
 
 	@JvmField
 	@Config.Name("g Join/Leave Messages")
@@ -225,8 +225,4 @@ object ConfigHandler {
 				ConfigManager.sync(Reference.MODID, Config.Type.INSTANCE)
 		}
 	}
-
-	//init {
-	//	ConfigAnytime.register(ConfigHandler::class.java)
-	//}
 }

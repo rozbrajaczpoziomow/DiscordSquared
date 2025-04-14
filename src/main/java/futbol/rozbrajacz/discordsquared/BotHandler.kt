@@ -3,7 +3,6 @@ package futbol.rozbrajacz.discordsquared
 import dev.kord.common.entity.PresenceStatus
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.entity.effectiveName
 import dev.kord.core.event.Event
 import dev.kord.core.event.gateway.ReadyEvent
 import dev.kord.core.event.message.MessageCreateEvent
@@ -52,13 +51,13 @@ object BotHandler {
 			if(message.author?.isBot == true || message.webhookId != null || message.channelId.value != channelID || message.content.isEmpty())
 				return@on
 
-			// Available formats: {username} {displayName} {message} {userId} {messageId}
-			val message = ConfigHandler.messageFormat
-				.replace("{username}", message.author?.username ?: "?")
-				.replace("{displayName}", message.getAuthorAsMemberOrNull()?.nickname ?: message.author?.effectiveName ?: "?")
-				.replace("{message}", message.content)
-				.replace("{userId}", message.author?.id?.value?.toString() ?: "?")
-				.replace("{messageId}", message.id.value.toString())
+			val message = ConfigHandler.messageFormat.fmt(
+				"username" to (message.author?.username ?: "?"),
+				"displayName" to (message.getAuthorAsMemberOrNull()?.effectiveName ?: "?"),
+				"message" to message.content,
+				"userId" to (message.author?.id?.value ?: "?"),
+				"messageId" to message.id.value
+			)
 
 			DiscordSquared.server.playerList.sendMessage(TextComponentString(message), false)
 		}
@@ -110,8 +109,6 @@ object BotHandler {
 	private suspend fun updatePresence() {
 		if(!ConfigHandler.discordBot.presence.enabled || !updatePresence)
 			return
-
-		println("editing presence!")
 
 		kord.editPresence {
 			status = PresenceStatus.from(ConfigHandler.discordBot.presence.status)
