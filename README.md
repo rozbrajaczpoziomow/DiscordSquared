@@ -2,7 +2,11 @@
 
 ![very high-quality logo](src/main/resources/assets/discordsquared/textures/logo.png)
 
-DiscordSquared is a (WIP) server-only mod for Discord <-> Minecraft communication.
+DiscordSquared is a server-only mod for Discord <-> Minecraft communication.
+It uses a webhook for Minecraft -> Discord communication and a discord bot for Discord -> Minecraft communication (uses Kord under the hood).
+
+It's also highly configurable, and has formattable rich presence and player join/leave/chat/death messages.
+
 
 ## Dependencies
 
