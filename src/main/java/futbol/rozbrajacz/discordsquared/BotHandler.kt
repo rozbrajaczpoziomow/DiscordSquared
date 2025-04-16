@@ -5,12 +5,14 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.event.Event
 import dev.kord.core.event.gateway.ReadyEvent
+import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.core.on
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
 import dev.kord.rest.builder.message.allowedMentions
 import futbol.rozbrajacz.discordsquared.DiscordSquared.fmt
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.util.text.TextComponentString
@@ -45,6 +47,7 @@ object BotHandler {
 		}
 
 		val channelID = stringID.toULong()
+		var guildID: ULong? = null // initialised at Ready
 
 		kord = Kord(ConfigHandler.discordBot.token.trim())
 		kord.on<MessageCreateEvent> {
@@ -87,6 +90,21 @@ object BotHandler {
 
 			postInit()
 			updatePresence()
+			CommandHandler.init()
+
+			guildID = kord.guilds.first { it.channelIds.any { id -> channelID == id.value } }.id.value
+
+			if(CommandHandler.commands.isNotEmpty())
+				CommandHandler.commands.entries.forEach { (name) ->
+					kord.createGuildChatInputCommand(Snowflake(guildID), name, name)
+				}
+		}
+
+		kord.on<GuildChatInputCommandInteractionCreateEvent> {
+			// require the command be executed in the correct server
+			// we technically only register it in the correct server, but doesn't hurt to double-check
+			if(interaction.invokedCommandGuildId?.value == guildID)
+				CommandHandler.commands.get(interaction.invokedCommandName)?.execute(interaction)
 		}
 
 		// good enough

@@ -79,5 +79,5 @@ dependencies {
 	// TODO: remove this and resources/simplelogger.properties for prod
 	// implementation "org.slf4j:slf4j-simple:2.1.0-alpha1"
 
-	embed "dev.kord:kord-core:0.15.0"
+	implementation "dev.kord:kord-core:0.15.0" // TODO: does `implementation` work instead of `embed`? if so, it saves me ~18MB on the build jar
 }

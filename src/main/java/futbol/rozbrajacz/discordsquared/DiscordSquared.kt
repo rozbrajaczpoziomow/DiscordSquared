@@ -57,7 +57,7 @@ object DiscordSquared {
 				BotHandler.init()
 			}
 		}.apply {
-			name = "${Reference.MOD_NAME} bot thread"
+			name = "${Reference.MOD_NAME} Discord Bot Thread"
 			start()
 		}
 	}

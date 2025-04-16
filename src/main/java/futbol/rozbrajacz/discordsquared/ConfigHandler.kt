@@ -65,6 +65,42 @@ object ConfigHandler {
 			@Config.Comment("Available substitutions: {onlinePlayers}, {maxPlayers}") // TODO: what else????
 			var text = "{onlinePlayers}/{maxPlayers} players online"
 		}
+
+		@JvmField
+		@Config.Name("d Commands")
+		@Config.Comment("Bot commands configuration")
+		val commands = Commands()
+
+		class Commands {
+			@JvmField
+			@Config.RequiresMcRestart
+			@Config.Name("a Enabled")
+			@Config.Comment("Enable commands")
+			var enabled = true
+
+			@JvmField
+			@Config.RequiresMcRestart
+			@Config.Name("b Commands")
+			@Config.Comment(
+				"Syntax: command;permissions;action;argument;...;",
+				"Valid permissions:",
+				"- u:userid - the user with the specified id can use the command",
+				"- r:roleid - the role with the specified id can use the command",
+				"- p:perm - any user with the specified permission can use the command",
+				"- * - everyone can use the command",
+				"Permissions can be combined (with a , as a separator), in which case a user that passes *any* (logical OR, not AND) of the specified permissions is allowed to use the command",
+				"Valid 'p:perm' permissions: create_instant_invite, kick_members, ban_members, administrator, manage_channels, manage_guild, add_reactions, view_audit_log, priority_speaker, stream, view_channel, send_messages, send_tts_messages, manage_messages, embed_links, attach_files, read_message_history, mention_everyone, use_external_emojis, view_guild_insights, connect, speak, mute_members, deafen_members, move_members, use_vad, change_nickname, manage_nicknames, manage_roles, manage_webhooks, manage_guild_expressions, use_application_commands, request_to_speak, manage_events, manage_threads, create_public_threads, create_private_threads, use_external_stickers, send_messages_in_threads, use_embedded_activities, moderate_members, view_creator_monetization_analytics, use_soundboard, create_guild_expressions, create_events, use_external_sounds, send_voice_messages",
+				"Valid actions:",
+				"- message_reply - takes a message as argument, simply replies with the message, available substitutions: {onlinePlayerCount}, {onlinePlayers}, {maxPlayerCount}", // TODO: more substitutions?
+				"- run_command - takes a command as argument, runs the command on the server", // TODO: more actions?
+				"More than 1 action can be specified per command, see defaults for an example",
+				"Commands can only be executed in the same server so as to not bypass permission checks"
+			)
+			var commands = arrayOf(
+				"online;*;message_reply;{onlinePlayerCount} players online out of a max of {maxPlayerCount}: {onlinePlayers};",
+				"meow;u:455435762981273630,u:183702894090911744,p:administrator;run_command;/me meow\\; meow\\; meow;message_reply;**meow**;"
+			)
+		}
 	}
 
 	@JvmField
