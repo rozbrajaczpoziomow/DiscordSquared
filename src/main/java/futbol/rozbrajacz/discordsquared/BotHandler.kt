@@ -13,7 +13,6 @@ import dev.kord.gateway.PrivilegedIntent
 import dev.kord.rest.builder.message.allowedMentions
 import futbol.rozbrajacz.discordsquared.DiscordSquared.fmt
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.util.text.TextComponentString
 
@@ -94,17 +93,18 @@ object BotHandler {
 
 			guildID = kord.guilds.first { it.channelIds.any { id -> channelID == id.value } }.id.value
 
-			if(CommandHandler.commands.isNotEmpty())
-				CommandHandler.commands.entries.forEach { (name) ->
-					kord.createGuildChatInputCommand(Snowflake(guildID), name, name)
+			if(CommandHandler.commands.isNotEmpty()) {
+				CommandHandler.commands.entries.forEach { (name, command) ->
+					kord.createGuildChatInputCommand(Snowflake(guildID), name, command.description)
 				}
-		}
 
-		kord.on<GuildChatInputCommandInteractionCreateEvent> {
-			// require the command be executed in the correct server
-			// we technically only register it in the correct server, but doesn't hurt to double-check
-			if(interaction.invokedCommandGuildId?.value == guildID)
-				CommandHandler.commands.get(interaction.invokedCommandName)?.execute(interaction)
+				kord.on<GuildChatInputCommandInteractionCreateEvent> {
+					// require the command be executed in the correct server
+					// we technically only register it in the correct server, but doesn't hurt to double-check
+					if(interaction.invokedCommandGuildId?.value == guildID)
+						CommandHandler.commands.get(interaction.invokedCommandName)?.execute(interaction)
+				}
+			}
 		}
 
 		// good enough
@@ -166,23 +166,15 @@ object BotHandler {
 		if(webhook == null)
 			return
 
-		// creating a new thread for every message is maybe kinda overkill? but at the same time, there's noticable delay if we don't, so…
-		// and it's not like it won't get killed instantly afterwards, so should be fine
-
-		Thread {
-			runBlocking {
-				kord.rest.webhook.executeWebhook(Snowflake(webhook!!.id), webhook!!.token, false, null) {
-					content = message
-					username = user
-					suppressEmbeds = true // TODO: does this need a config option?
-					avatarUrl = avatar
-					if(!ConfigHandler.allowMentions)
-						allowedMentions {}
-				}
+		ExecutionThread.execute {
+			kord.rest.webhook.executeWebhook(Snowflake(webhook!!.id), webhook!!.token, false, null) {
+				content = message
+				username = user
+				suppressEmbeds = true
+				avatarUrl = avatar
+				if(!ConfigHandler.allowMentions)
+					allowedMentions {}
 			}
-		}.apply {
-			name = "${Reference.MODID}-webhook-message"
-			start()
 		}
 	}
 

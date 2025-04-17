@@ -7,14 +7,12 @@ import dev.kord.core.behavior.interaction.respondPublic
 import dev.kord.core.entity.Member
 import dev.kord.core.entity.interaction.GuildChatInputCommandInteraction
 import futbol.rozbrajacz.discordsquared.DiscordSquared.fmt
-import kotlinx.coroutines.runBlocking
 
 object CommandHandler {
 	val commands: HashMap<String, Command> = hashMapOf()
 
 	private val actions: Map<String, CommandAction> = mapOf(
 		"message_reply" to CommandAction(1) { arguments ->
-			println("got to message_reply! ${arguments[0]}")
 			respondPublic {
 				content = arguments[0].fmt(
 					"onlinePlayerCount" to DiscordSquared.server.currentPlayerCount,
@@ -24,7 +22,6 @@ object CommandHandler {
 			}
 		},
 		"run_command" to CommandAction(1) { arguments ->
-			println("got to run_command! ${arguments[0]}")
 			DiscordSquared.server.commandManager.executeCommand(DiscordSquared.server, arguments[0])
 		}
 	)
@@ -89,22 +86,26 @@ object CommandHandler {
 	private fun parseCommand(command: String) {
 		// since we allow \; I'd rather just write a custom splitter
 		val split = mutableListOf<String>()
-		var prev = 0
-		for(i in command.indices)
-			if(command[i] == ';' && (i == 0 || command[i - 1] != '\\')) {
-				val str = command.substring(prev, i)
-				if(str.isNotEmpty())
-					split.add(str.replace("\\;", ";"))
-				prev = i + 1
-			}
+		null.let { // variable context separation
+			val parse = command + if(command.last() != ';') ';' else ""
+			var prev = 0
+			for(i in parse.indices)
+				if(parse[i] == ';' && (i == 0 || parse[i - 1] != '\\')) {
+					val str = parse.substring(prev, i)
+					if(str.isNotEmpty())
+						split.add(str.replace("\\;", ";"))
+					prev = i + 1
+				}
+		}
 
-		// name;perm; is minimum
+		// name;desc;perm is minimum
 		if(split.size < 2) {
 			DiscordSquared.logger.error("Invalid command, expected at least 2 sections but found ${split.size}: $command")
 			return
 		}
 
 		val name = split.removeAt(0)
+		val description = split.removeAt(0)
 		val permissionStr = split.removeAt(0)
 		val boundActionDispatchers = mutableListOf<suspend GuildChatInputCommandInteraction.() -> Unit>()
 
@@ -143,7 +144,7 @@ object CommandHandler {
 				return
 			}
 			if(action.argumentCount > split.size) {
-				DiscordSquared.logger.error("Invalid command, action $actionStr requires ${action.argumentCount} arguments but only ${split.size} were found (if this is the last action in the command, try placing a semicolon at the end): $command")
+				DiscordSquared.logger.error("Invalid command, action $actionStr requires ${action.argumentCount} arguments but only ${split.size} were found: $command")
 				return
 			}
 			val arguments = split.subList(0, action.argumentCount).toTypedArray()
@@ -151,26 +152,20 @@ object CommandHandler {
 			repeat(action.argumentCount) { split.removeFirst() }
 		}
 
-		commands[name] = Command(commandPermission, boundActionDispatchers)
+		commands[name] = Command(description, commandPermission, boundActionDispatchers)
 	}
 
-	class Command(val commandPermission: CommandPermission, val boundActionDispatchers: List<suspend GuildChatInputCommandInteraction.() -> Unit>) {
+	class Command(val description: String, val commandPermission: CommandPermission, val boundActionDispatchers: List<suspend GuildChatInputCommandInteraction.() -> Unit>) {
 		fun execute(ctx: GuildChatInputCommandInteraction) {
-			// creating a Thread here is definitely overkill, but subroutines are extremely confusing and this is the only way I got this to work, send help
-			Thread {
-				runBlocking {
-					if(!commandPermission.validate(ctx.user))
-						ctx.respondEphemeral {
-							content = "You don't have enough permissions to execute this command"
-						}
-					else
-						boundActionDispatchers.forEach {
-							it(ctx)
-						}
-				}
-			}.apply {
-				name = "${Reference.MOD_NAME} Command Execution Thread"
-				start()
+			ExecutionThread.execute {
+				if(!commandPermission.validate(ctx.user))
+					ctx.respondEphemeral {
+						content = "You don't have enough permissions to execute this command"
+					}
+				else
+					boundActionDispatchers.forEach {
+						it(ctx)
+					}
 			}
 		}
 	}

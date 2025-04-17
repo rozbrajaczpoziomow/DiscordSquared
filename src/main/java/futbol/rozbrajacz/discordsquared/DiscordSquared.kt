@@ -8,7 +8,6 @@ import net.minecraftforge.event.entity.living.LivingDeathEvent
 import net.minecraftforge.fml.common.FMLCommonHandler
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
-import net.minecraftforge.fml.common.event.FMLServerStartedEvent
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -16,6 +15,7 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.server.FMLServerHandler
 import org.apache.logging.log4j.Logger
+import java.util.*
 import kotlin.properties.Delegates
 
 @Mod(
@@ -37,6 +37,7 @@ object DiscordSquared {
 		private set
 	lateinit var server: MinecraftServer
 		private set
+	val joined = hashSetOf<UUID>()
 
 	@Suppress("unused")
 	@Mod.EventHandler
@@ -57,9 +58,10 @@ object DiscordSquared {
 				BotHandler.init()
 			}
 		}.apply {
-			name = "${Reference.MOD_NAME} Discord Bot Thread"
+			name = "${Reference.MOD_NAME} Bot Thread"
 			start()
 		}
+		ExecutionThread.thread.start()
 	}
 
 	@Suppress("unused")
@@ -90,6 +92,10 @@ object DiscordSquared {
 		if(!enabled || !ConfigHandler.joinLeaveMessages.joinEnabled)
 			return
 
+		if(ConfigHandler.joinLeaveMessages.failedEnabled) {
+			joined.add(e.player.uniqueID)
+		}
+
 		BotHandler.updatePresence = true // onlinePlayers
 		BotHandler.postPlayerMessage(e.player, ConfigHandler.joinLeaveMessages.joinFormat.fmt(
 			"username" to e.player.name,
@@ -105,7 +111,12 @@ object DiscordSquared {
 			return
 
 		BotHandler.updatePresence = true // onlinePlayers
-		BotHandler.postPlayerMessage(e.player, ConfigHandler.joinLeaveMessages.leaveFormat.fmt(
+
+		var message = ConfigHandler.joinLeaveMessages.leaveFormat
+		if(ConfigHandler.joinLeaveMessages.failedEnabled && !joined.remove(e.player.uniqueID))
+			message = ConfigHandler.joinLeaveMessages.failedFormat
+
+		BotHandler.postPlayerMessage(e.player, message.fmt(
 			"username" to e.player.name,
 			"uuid" to e.player.uniqueID,
 			"newOnlineCount" to server.playerList.currentPlayerCount
@@ -124,10 +135,6 @@ object DiscordSquared {
 			"deathReason" to e.entityLiving.combatTracker.deathMessage.unformattedText.removePrefix("${e.entityLiving.name} ")
 		))
 	}
-
-	//because we're on server-side, we cannot translate any normal way
-	//use translateToFallback to hardcode en-US locale
-	//fun String.translate() = I18n.translateToFallback(this)
 
 	fun String.fmt(vararg modifiers: Pair<String, Any>): String {
 		var ret = this

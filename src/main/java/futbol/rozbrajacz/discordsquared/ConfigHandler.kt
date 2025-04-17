@@ -23,7 +23,7 @@ object ConfigHandler {
 		@Config.RequiresMcRestart
 		@Config.Name("a Token")
 		@Config.Comment(
-			"Required for 2-way communication, can be obtained at https://discord.dev if you know what you're doing, the message content intent is required",
+			"Required for 2-way communication, the message content intent is required",
 			"Can be left empty if all you need is Minecraft -> Discord communication"
 		)
 		var token = ""
@@ -31,7 +31,7 @@ object ConfigHandler {
 		@JvmField
 		@Config.RequiresMcRestart
 		@Config.Name("b Channel ID")
-		@Config.Comment("Required if you want to use a Discord bot")
+		@Config.Comment("Required if you provided a token")
 		var channelID = ""
 
 		@JvmField
@@ -82,7 +82,7 @@ object ConfigHandler {
 			@Config.RequiresMcRestart
 			@Config.Name("b Commands")
 			@Config.Comment(
-				"Syntax: command;permissions;action;argument;...;",
+				"Syntax: command;description;permissions;action;argument;...;",
 				"Valid permissions:",
 				"- u:userid - the user with the specified id can use the command",
 				"- r:roleid - the role with the specified id can use the command",
@@ -97,8 +97,8 @@ object ConfigHandler {
 				"Commands can only be executed in the same server so as to not bypass permission checks"
 			)
 			var commands = arrayOf(
-				"online;*;message_reply;{onlinePlayerCount} players online out of a max of {maxPlayerCount}: {onlinePlayers};",
-				"meow;u:455435762981273630,u:183702894090911744,p:administrator;run_command;/me meow\\; meow\\; meow;message_reply;**meow**;"
+				"online;Display players currently online on the server;*;message_reply;{onlinePlayerCount} players online out of a max of {maxPlayerCount}: {onlinePlayers};",
+				"meow;meow at everyone;u:455435762981273630,u:183702894090911744,p:administrator;run_command;/me meow\\; meow\\; meow;message_reply;**meow**;"
 			)
 		}
 	}
@@ -196,6 +196,16 @@ object ConfigHandler {
 		@Config.Name("d Leave - Message Format")
 		@Config.Comment("Message format, available substitutions: {username}, {uuid}, {newOnlineCount}")
 		var leaveFormat = "{username} left the game"
+
+		@JvmField
+		@Config.Name("e Failed to connect - Enabled")
+		@Config.Comment("Differenciate players that failed to connect successfully (due to missing mods for example), requires leave messages to also be enabled")
+		var failedEnabled = true
+
+		@JvmField
+		@Config.Name("f Failed to connect - Message Format")
+		@Config.Comment("Message format, available substitutions: {username}, {uuid}, {newOnlineCount}")
+		var failedFormat = "{username} failed to connect successfully"
 	}
 
 	@JvmField
