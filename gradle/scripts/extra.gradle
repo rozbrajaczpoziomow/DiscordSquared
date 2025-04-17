@@ -3,3 +3,24 @@
 
 // If you wish to use the default helper methods, uncomment the line below
 // apply from: 'gradle/scripts/helpers.gradle'
+
+// do not touch or else very fun errors will ruin the rest of your day
+// "inspired" by https://github.com/CleanroomMC/CleanroomRelauncher/blob/08f342278c0fabed5b9a2c50407a1a4f6a9452a1/gradle/scripts/extra.gradle#L21
+tasks.named('reobfJar') {
+	inputJar.set(tasks.named('shadowJar').flatMap({ it.archiveFile }))
+}
+
+tasks.shadowJar {
+//	dependsOn project(':mainWrapper').tasks.named('classes')
+
+	archiveClassifier = ''
+	configurations = [ project.configurations.shade ]
+
+//	from {
+//		project(':mainWrapper').layout.buildDirectory.dir('classes/java/main/com/cleanroommc/relauncher/')
+//	}
+
+	relocate 'org.slf4j', 'futbol.rozbrajacz.discordsquared.shade.slf4j'
+
+	mergeServiceFiles()
+}

@@ -34,6 +34,11 @@ repositories {
 	mavenLocal() // Must be last for caching to work
 }
 
+configurations {
+	shade
+	implementation.extendsFrom shade
+}
+
 dependencies {
 	// Include StripLatestForgeRequirements by default for the dev env, saves everyone a hassle
 	runtimeOnly 'com.cleanroommc:strip-latest-forge-requirements:1.0'
@@ -72,12 +77,11 @@ dependencies {
 	//     transitive = false
 	// }
 
-	implementation("io.github.chaosunity.forgelin:Forgelin-Continuous:" + project.forgelin_continuous_version) { transitive = false }
+	implementation('io.github.chaosunity.forgelin:Forgelin-Continuous:' + project.forgelin_continuous_version) { transitive = false }
 
-	// implementation "com.cleanroommc:configanytime:3.0"
+	// implementation 'com.cleanroommc:configanytime:3.0'
 
-	// TODO: remove this and resources/simplelogger.properties for prod
-	// implementation "org.slf4j:slf4j-simple:2.1.0-alpha1"
-
-	embed "dev.kord:kord-core:0.15.0"
+	// do not touch or else very fun errors will ruin the rest of your day
+	shade 'dev.kord:kord-core:0.15.0'
+	shade 'org.slf4j:slf4j-api:2.0.17'
 }
