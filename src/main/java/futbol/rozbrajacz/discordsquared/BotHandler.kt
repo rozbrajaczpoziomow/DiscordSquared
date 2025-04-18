@@ -11,6 +11,7 @@ import dev.kord.core.on
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
 import dev.kord.rest.builder.message.allowedMentions
+import dev.kord.rest.service.RestClient
 import futbol.rozbrajacz.discordsquared.DiscordSquared.fmt
 import kotlinx.coroutines.flow.first
 import net.minecraft.entity.EntityLivingBase
@@ -19,11 +20,12 @@ import net.minecraft.util.text.TextComponentString
 object BotHandler {
 	private const val WEBHOOK_NAME = "dscsquared_webhook" // Username cannot contain "discord"
 
-	var hasBot = ConfigHandler.discordBot.token.trim().isNotEmpty()
+	val hasBot = ConfigHandler.discordBot.token.trim().isNotEmpty()
+	lateinit var kord: Kord // only non-null when `hasBot` and post init()
 		private set
-	lateinit var kord: Kord
+	lateinit var rest: RestClient // always non-null post init()
 		private set
-	var webhook: WebhookData? = null
+	var webhook: WebhookData? = null // nullable
 		private set
 	var updatePresence = true
 
@@ -34,6 +36,7 @@ object BotHandler {
 			webhook = WebhookData(webhookUrl)
 
 		if(!hasBot) {
+			rest = RestClient("")
 			postInit()
 			return
 		}
@@ -46,9 +49,10 @@ object BotHandler {
 		}
 
 		val channelID = stringID.toULong()
-		var guildID: ULong? = null // initialised at Ready
+		var guildID: ULong?  // initialised at Ready
 
 		kord = Kord(ConfigHandler.discordBot.token.trim())
+		rest = kord.rest
 		kord.on<MessageCreateEvent> {
 			if(message.author?.isBot == true || message.webhookId != null || message.channelId.value != channelID || message.content.isEmpty())
 				return@on
@@ -167,7 +171,7 @@ object BotHandler {
 			return
 
 		ExecutionThread.execute {
-			kord.rest.webhook.executeWebhook(Snowflake(webhook!!.id), webhook!!.token, false, null) {
+			rest.webhook.executeWebhook(Snowflake(webhook!!.id), webhook!!.token, false, null) {
 				content = message
 				username = user
 				suppressEmbeds = true
@@ -185,10 +189,10 @@ object BotHandler {
 		// https://discord.com/api/webhooks/{id}/{token}
 		constructor(url: String) {
 			if(!url.contains("discord.com/api/webhooks/"))
-				throw Error("Provided webhook url is not valid: $url")
-			token = url.takeLastWhile { it != '/' }
-			val tmp = url.dropLastWhile { it != '/' }.dropLast(1)
-			id = tmp.dropLastWhile { it != '/' }.toULong()
+				throw Error("Provided webhook url is invalid: $url")
+			val split = url.split('/').filter { it.isNotEmpty() }
+			token = split.last()
+			id = split[split.lastIndex - 1].toULong()
 		}
 
 		constructor(id: ULong, token: String) {
