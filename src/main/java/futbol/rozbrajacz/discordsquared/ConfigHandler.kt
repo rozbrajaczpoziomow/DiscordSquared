@@ -23,7 +23,7 @@ object ConfigHandler {
 		@Config.RequiresMcRestart
 		@Config.Name("a Token")
 		@Config.Comment(
-			"Required for 2-way communication, the message content intent is required",
+			"Required for 2-way communication, see https://github.com/rozbrajaczpoziomow/DiscordSquared/blob/main/assets/bot-creation/README.md for instructions",
 			"Can be left empty if all you need is Minecraft -> Discord communication"
 		)
 		var token = ""
