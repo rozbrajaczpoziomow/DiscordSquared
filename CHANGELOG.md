@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.3.0] Bugfixing
+## [0.2.1] Bugfixing
 - Fix behaviour when there's no bot token provided
 - Fix webhook URL parser
 
